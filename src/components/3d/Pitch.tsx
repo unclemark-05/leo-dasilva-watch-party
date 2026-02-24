@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { Line } from "@react-three/drei";
 import * as THREE from "three";
+import { createGrassTexture } from "./stadiumMaterials";
 
 function CircleLine({
   radius,
@@ -27,37 +29,24 @@ export default function Pitch() {
   const hh = H / 2;
   const y = 0.03;
 
+  // Procedural grass texture (created once)
+  const grassMaterial = useMemo(() => {
+    const tex = createGrassTexture(512);
+    return new THREE.MeshStandardMaterial({
+      map: tex,
+      emissive: "#0a3a0a",
+      emissiveIntensity: 0.1,
+      side: THREE.DoubleSide,
+    });
+  }, []);
+
   return (
     <group>
-      {/* Green pitch — bright and vibrant */}
+      {/* Green pitch with procedural grass stripes + grain */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <planeGeometry args={[W, H]} />
-        <meshStandardMaterial
-          color="#2d8b2d"
-          emissive="#0a3a0a"
-          emissiveIntensity={0.15}
-          side={THREE.DoubleSide}
-        />
+        <primitive object={grassMaterial} attach="material" />
       </mesh>
-
-      {/* Pitch stripe pattern (alternating shades) */}
-      {Array.from({ length: 10 }).map((_, i) => (
-        <mesh
-          key={i}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[-hw + (i * W) / 10 + W / 20, 0.015, 0]}
-        >
-          <planeGeometry args={[W / 10, H]} />
-          <meshStandardMaterial
-            color={i % 2 === 0 ? "#2d8b2d" : "#338b33"}
-            emissive={i % 2 === 0 ? "#0a3a0a" : "#0c3f0c"}
-            emissiveIntensity={0.1}
-            side={THREE.DoubleSide}
-            transparent
-            opacity={0.4}
-          />
-        </mesh>
-      ))}
 
       {/* Touchlines */}
       <Line points={[[-hw, y, -hh], [hw, y, -hh]]} color="white" lineWidth={2} />
@@ -102,12 +91,38 @@ export default function Pitch() {
             lineWidth={1.5}
           />
           {/* Penalty spot */}
-          <mesh position={[side * (hw - 2.5), y + 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh
+            position={[side * (hw - 2.5), y + 0.01, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
             <circleGeometry args={[0.08, 12]} />
             <meshBasicMaterial color="white" side={THREE.DoubleSide} />
           </mesh>
         </group>
       ))}
+
+      {/* Corner arcs */}
+      {[
+        [-hw, -hh],
+        [hw, -hh],
+        [-hw, hh],
+        [hw, hh],
+      ].map(([cx, cz], i) => {
+        const startAngle =
+          i === 0
+            ? 0
+            : i === 1
+              ? Math.PI / 2
+              : i === 2
+                ? -Math.PI / 2
+                : Math.PI;
+        const pts: [number, number, number][] = [];
+        for (let j = 0; j <= 16; j++) {
+          const angle = startAngle + (j / 16) * (Math.PI / 2);
+          pts.push([cx + Math.cos(angle) * 0.5, y, cz + Math.sin(angle) * 0.5]);
+        }
+        return <Line key={i} points={pts} color="white" lineWidth={1} />;
+      })}
     </group>
   );
 }

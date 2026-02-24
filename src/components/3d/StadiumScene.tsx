@@ -15,11 +15,11 @@ const CAMERA_TARGETS: Record<
 > = {
   ball: { pos: [0, 4, 5], lookAt: [0, 0.5, 0] },
   bench: { pos: [-5, 3, -5], lookAt: [-8, 0.5, -7.5] },
-  scoreboard: { pos: [0, 8, -2], lookAt: [0, 7.2, -8.5] },
-  stands: { pos: [0, 5, 14], lookAt: [0, 3.5, 8.5] },
-  vip: { pos: [8, 7, 3], lookAt: [12.5, 5.5, 0] },
-  tunnel: { pos: [0, 2.5, -4], lookAt: [0, 1, -7.8] },
-  cannon: { pos: [0, 10, -5], lookAt: [0, 9.5, -10.5] },
+  scoreboard: { pos: [0, 8.5, -2], lookAt: [0, 7.5, -9] },
+  stands: { pos: [0, 5, 15], lookAt: [0, 3.5, 9] },
+  vip: { pos: [8, 7, 3], lookAt: [12, 5.5, 0] },
+  tunnel: { pos: [0, 2.5, -4], lookAt: [0, 1, -8.2] },
+  cannon: { pos: [0, 10.5, -5], lookAt: [0, 9, -11] },
 };
 
 const DEFAULT_CAM = { pos: [0, 12, 25] as [number, number, number], lookAt: [0, 2, 0] as [number, number, number] };
@@ -97,7 +97,7 @@ export default function StadiumScene({ activeHotspot, onHotspotClick }: StadiumS
           <CameraController activeHotspot={activeHotspot} />
           <StadiumModel onHotspotClick={handleClick} activeHotspot={activeHotspot} />
           <Floodlights />
-          <Crowd count={2500} />
+          <Crowd count={3000} />
           <Stars radius={120} depth={60} count={2000} factor={5} fade speed={0.8} />
         </Suspense>
       </Canvas>
