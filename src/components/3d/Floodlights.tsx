@@ -5,10 +5,10 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 const POSITIONS: [number, number, number][] = [
-  [-12, 0, -8],
-  [12, 0, -8],
-  [-12, 0, 8],
-  [12, 0, 8],
+  [-14, 0, -10],
+  [14, 0, -10],
+  [-14, 0, 10],
+  [14, 0, 10],
 ];
 
 export default function Floodlights() {
@@ -16,11 +16,12 @@ export default function Floodlights() {
 
   useFrame(({ clock }) => {
     if (!lightsRef.current) return;
+    // Access point lights (child index 2 in each tower group)
     lightsRef.current.children.forEach((group, i) => {
-      const light = group.children[1] as THREE.PointLight;
-      if (light) {
-        light.intensity =
-          2 + Math.sin(clock.elapsedTime * 3 + i * 0.5) * 0.15;
+      const pointLight = group.children[2] as THREE.PointLight;
+      if (pointLight && pointLight.isLight) {
+        pointLight.intensity =
+          4 + Math.sin(clock.elapsedTime * 2.5 + i * 0.8) * 0.3;
       }
     });
   });
@@ -29,26 +30,37 @@ export default function Floodlights() {
     <group ref={lightsRef}>
       {POSITIONS.map((pos, i) => (
         <group key={i} position={pos}>
-          {/* Tower */}
-          <mesh position={[0, 6, 0]}>
-            <boxGeometry args={[0.25, 12, 0.25]} />
-            <meshStandardMaterial color="#333" metalness={0.6} roughness={0.4} />
+          {/* Tower pole */}
+          <mesh position={[0, 7, 0]}>
+            <boxGeometry args={[0.3, 14, 0.3]} />
+            <meshStandardMaterial color="#444" metalness={0.7} roughness={0.3} />
           </mesh>
-          {/* Light head */}
-          <mesh position={[0, 12.5, 0]}>
-            <boxGeometry args={[1.5, 0.4, 0.8]} />
+          {/* Light panel at top */}
+          <mesh position={[0, 14.5, 0]}>
+            <boxGeometry args={[2, 0.5, 1.2]} />
             <meshStandardMaterial
-              color="#fff5e6"
-              emissive="#fff5e6"
-              emissiveIntensity={0.5}
+              color="#ffffff"
+              emissive="#fffbe6"
+              emissiveIntensity={1.5}
             />
           </mesh>
-          {/* Point light */}
+          {/* Point light — BRIGHT */}
           <pointLight
-            position={[0, 12, 0]}
+            position={[0, 14, 0]}
+            intensity={4}
+            distance={50}
+            color="#fff8e0"
+            castShadow={false}
+          />
+          {/* Secondary spotlight pointing down at pitch */}
+          <spotLight
+            position={[0, 14, 0]}
+            target-position={[0, 0, 0]}
+            angle={0.6}
+            penumbra={0.5}
             intensity={2}
-            distance={40}
-            color="#fff5e6"
+            distance={35}
+            color="#fff8e0"
             castShadow={false}
           />
         </group>
