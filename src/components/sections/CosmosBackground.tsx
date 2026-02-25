@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useScrollProgress } from "@/hooks/useScrollProgress";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 import { useMousePosition } from "@/hooks/useMousePosition";
 import { useCosmosStore } from "@/lib/cosmosStore";
 
@@ -49,7 +49,7 @@ function CSSFallback() {
 export default function CosmosBackground() {
   const [use3D, setUse3D] = useState(false);
 
-  useScrollProgress();
+  useSmoothScroll();
   useMousePosition();
 
   useEffect(() => {

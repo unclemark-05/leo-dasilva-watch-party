@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import Preloader from "@/components/ui/Preloader";
+import CustomCursor from "@/components/ui/CustomCursor";
+import ScrollProgress from "@/components/ui/ScrollProgress";
 import { SITE } from "@/lib/constants";
 import "./globals.css";
 
@@ -49,6 +52,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans overflow-x-hidden`}>
+        <Preloader />
+        <CustomCursor />
+        <ScrollProgress />
         <Navbar />
         <main className="min-h-screen pt-16">{children}</main>
         <Footer />

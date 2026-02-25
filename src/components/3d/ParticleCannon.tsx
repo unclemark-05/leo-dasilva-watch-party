@@ -8,13 +8,13 @@ import { useCosmosStore } from "@/lib/cosmosStore";
 const PARTICLE_COUNT = 12000;
 const BARREL_COUNT = 7000;
 const WHEEL_COUNT = 3000;
-const CARRIAGE_COUNT = 2000;
 
-// Generate cannon-shaped target positions
 function generateCannonShape() {
   const targets = new Float32Array(PARTICLE_COUNT * 3);
-  const colors = new Float32Array(PARTICLE_COUNT * 3);
   const scattered = new Float32Array(PARTICLE_COUNT * 3);
+  const colors = new Float32Array(PARTICLE_COUNT * 3);
+  const randoms = new Float32Array(PARTICLE_COUNT);
+  const sizes = new Float32Array(PARTICLE_COUNT);
 
   const redColor = new THREE.Color("#EF0107");
   const goldColor = new THREE.Color("#9C824A");
@@ -33,7 +33,6 @@ function generateCannonShape() {
 
     // Target positions (cannon shape)
     if (i < BARREL_COUNT) {
-      // Barrel: cylinder (radius 0.4, length 3.0, tilted 10 degrees)
       const angle = Math.random() * Math.PI * 2;
       const radius = 0.4 * Math.sqrt(Math.random());
       const length = (Math.random() - 0.5) * 3.0;
@@ -42,7 +41,6 @@ function generateCannonShape() {
       targets[i3 + 1] = length * Math.sin(tilt) + radius * Math.sin(angle);
       targets[i3 + 2] = length * Math.cos(tilt);
     } else if (i < BARREL_COUNT + WHEEL_COUNT) {
-      // Wheel: torus (major 0.7, minor 0.15) below barrel rear
       const theta = Math.random() * Math.PI * 2;
       const phi2 = Math.random() * Math.PI * 2;
       const major = 0.7;
@@ -51,7 +49,6 @@ function generateCannonShape() {
       targets[i3 + 1] = (major + minor * Math.cos(phi2)) * Math.sin(theta) - 0.8;
       targets[i3 + 2] = minor * Math.sin(phi2) - 1.2;
     } else {
-      // Carriage: box (1.0 x 0.4 x 0.6) under barrel
       targets[i3] = (Math.random() - 0.5) * 1.0;
       targets[i3 + 1] = (Math.random() - 0.5) * 0.4 - 0.5;
       targets[i3 + 2] = (Math.random() - 0.5) * 0.6 - 0.3;
@@ -63,121 +60,170 @@ function generateCannonShape() {
     colors[i3] = color.r;
     colors[i3 + 1] = color.g;
     colors[i3 + 2] = color.b;
+
+    randoms[i] = Math.random();
+    sizes[i] = Math.random() * 0.5 + 0.2;
   }
 
-  return { targets, scattered, colors };
+  return { targets, scattered, colors, randoms, sizes };
 }
 
+const vertexShader = /* glsl */ `
+  attribute vec3 aTarget;
+  attribute vec3 aScattered;
+  attribute vec3 aColor;
+  attribute float aRandom;
+  attribute float aSize;
+
+  uniform float uTime;
+  uniform float uFormFactor;
+  uniform vec2 uMouseWorld;
+  uniform float uScrollProgress;
+  uniform float uPixelRatio;
+
+  varying vec3 vColor;
+  varying float vFormFactor;
+  varying float vRandom;
+
+  void main() {
+    // Blend scattered <-> target via formFactor
+    vec3 pos = mix(aScattered, aTarget, uFormFactor);
+
+    // Breathing pulse when formed
+    if (uFormFactor > 0.5) {
+      float breathe = sin(uTime * 0.8) * 0.03;
+      pos *= 1.0 + breathe;
+    }
+
+    // Organic noise displacement
+    float noise = sin(pos.x * 0.5 + uTime * 0.3) * cos(pos.y * 0.3 + uTime * 0.2) * 0.15;
+    pos.x += sin(uTime * 0.15 + aRandom * 6.28) * 0.1 * (1.0 - uFormFactor) + noise * (1.0 - uFormFactor * 0.7);
+    pos.y += cos(uTime * 0.12 + aRandom * 6.28) * 0.1 * (1.0 - uFormFactor);
+
+    // Mouse ripple when formed
+    if (uFormFactor > 0.3) {
+      vec2 diff = pos.xy - uMouseWorld;
+      float dist = length(diff);
+      if (dist < 3.0) {
+        float ripple = (1.0 - dist / 3.0) * 0.3 * uFormFactor;
+        pos.xy += normalize(diff) * ripple;
+      }
+    }
+
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+
+    // Size attenuation
+    float distanceFactor = 1.0 / (-mvPosition.z * 0.05 + 1.0);
+    float formScale = 0.6 + uFormFactor * 0.4;
+    gl_PointSize = aSize * uPixelRatio * distanceFactor * formScale * 60.0;
+    gl_Position = projectionMatrix * mvPosition;
+
+    vColor = aColor;
+    vFormFactor = uFormFactor;
+    vRandom = aRandom;
+  }
+`;
+
+const fragmentShader = /* glsl */ `
+  uniform float uTime;
+
+  varying vec3 vColor;
+  varying float vFormFactor;
+  varying float vRandom;
+
+  void main() {
+    // Soft radial gradient
+    float dist = length(gl_PointCoord - vec2(0.5));
+    if (dist > 0.5) discard;
+
+    float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
+    alpha *= alpha; // Quadratic falloff for soft glow
+
+    // Twinkle effect
+    float twinkle = sin(uTime * 2.0 + vRandom * 62.83) * 0.3 + 0.7;
+    alpha *= twinkle;
+
+    // Glow intensifies with formFactor
+    float glow = exp(-dist * 4.0) * (0.3 + vFormFactor * 0.4);
+    vec3 color = vColor + glow * 0.2;
+
+    gl_FragColor = vec4(color, alpha * (0.4 + vFormFactor * 0.4));
+  }
+`;
+
 export default function ParticleCannon() {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const pointsRef = useRef<THREE.Points>(null);
   const startTime = useRef(0);
   const assembled = useRef(false);
 
-  const { targets, scattered, colors } = useMemo(() => generateCannonShape(), []);
+  const { geometry, uniforms } = useMemo(() => {
+    const { targets, scattered, colors, randoms, sizes } = generateCannonShape();
 
-  // Current positions (will be lerped)
-  const currentPositions = useRef(new Float32Array(scattered));
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(scattered.slice(), 3));
+    geo.setAttribute("aTarget", new THREE.BufferAttribute(targets, 3));
+    geo.setAttribute("aScattered", new THREE.BufferAttribute(scattered, 3));
+    geo.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 1));
+    geo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+
+    const u = {
+      uTime: { value: 0 },
+      uFormFactor: { value: 0 },
+      uMouseWorld: { value: new THREE.Vector2(0, 0) },
+      uScrollProgress: { value: 0 },
+      uPixelRatio: {
+        value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1,
+      },
+    };
+
+    return { geometry: geo, uniforms: u };
+  }, []);
 
   useEffect(() => {
     startTime.current = performance.now() / 1000;
-    if (!meshRef.current) return;
-
-    // Set instance colors
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const i3 = i * 3;
-      const color = new THREE.Color(colors[i3], colors[i3 + 1], colors[i3 + 2]);
-      meshRef.current.setColorAt(i, color);
-    }
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
-  }, [colors]);
+  }, []);
 
   useFrame(({ clock }) => {
-    if (!meshRef.current) return;
+    if (!pointsRef.current) return;
 
     const state = useCosmosStore.getState();
     const elapsed = clock.elapsedTime - startTime.current;
     const scroll = state.scrollProgress;
 
-    // Assembly progress: 0→1 over first 2 seconds
+    // Assembly: 0→1 over first 2s
     const assemblyProgress = Math.min(elapsed / 2, 1);
     const assemblySmooth = assemblyProgress * assemblyProgress * (3 - 2 * assemblyProgress);
 
     if (assemblyProgress >= 1 && !assembled.current) {
       assembled.current = true;
-      useCosmosStore.getState().setIsLoaded(true);
+      state.setIsLoaded(true);
     }
 
-    // Dissolution: scattered again as scroll goes 15%→50%
-    const dissolveProgress = scroll < 0.15 ? 0 : scroll > 0.5 ? 1 : (scroll - 0.15) / 0.35;
-    const dissolveSmooth = dissolveProgress * dissolveProgress * (3 - 2 * dissolveProgress);
+    // Dissolution: scatter as scroll goes 15%→50%
+    const dissolveProgress =
+      scroll < 0.15 ? 0 : scroll > 0.5 ? 1 : (scroll - 0.15) / 0.35;
+    const dissolveSmooth =
+      dissolveProgress * dissolveProgress * (3 - 2 * dissolveProgress);
 
-    // Breathing animation (subtle scale pulse when assembled)
-    const breathe = assembled.current ? Math.sin(clock.elapsedTime * 0.8) * 0.03 : 0;
+    const formFactor = assemblySmooth * (1 - dissolveSmooth);
 
-    // Mouse ripple displacement
-    const mxWorld = state.mouseX * 5;
-    const myWorld = state.mouseY * 3;
-
-    const positions = currentPositions.current;
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const i3 = i * 3;
-
-      // Blend between scattered and target based on assembly and dissolve
-      const formFactor = assemblySmooth * (1 - dissolveSmooth);
-
-      const tx = targets[i3];
-      const ty = targets[i3 + 1];
-      const tz = targets[i3 + 2];
-      const sx = scattered[i3];
-      const sy = scattered[i3 + 1];
-      const sz = scattered[i3 + 2];
-
-      let px = sx + (tx - sx) * formFactor;
-      let py = sy + (ty - sy) * formFactor;
-      let pz = sz + (tz - sz) * formFactor;
-
-      // Breathing
-      if (formFactor > 0.5) {
-        px *= 1 + breathe;
-        py *= 1 + breathe;
-        pz *= 1 + breathe;
-      }
-
-      // Mouse ripple (only when formed)
-      if (formFactor > 0.3) {
-        const dx = px - mxWorld;
-        const dy = py - myWorld;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 3) {
-          const ripple = (1 - dist / 3) * 0.3 * formFactor;
-          px += dx * ripple;
-          py += dy * ripple;
-        }
-      }
-
-      // Smooth lerp current positions
-      positions[i3] += (px - positions[i3]) * 0.08;
-      positions[i3 + 1] += (py - positions[i3 + 1]) * 0.08;
-      positions[i3 + 2] += (pz - positions[i3 + 2]) * 0.08;
-
-      dummy.position.set(positions[i3], positions[i3 + 1], positions[i3 + 2]);
-      const scale = 0.02 + formFactor * 0.015;
-      dummy.scale.setScalar(scale);
-      dummy.updateMatrix();
-      meshRef.current!.setMatrixAt(i, dummy.matrix);
-    }
-
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    uniforms.uTime.value = clock.elapsedTime;
+    uniforms.uFormFactor.value = formFactor;
+    uniforms.uMouseWorld.value.set(state.mouseX * 5, state.mouseY * 3);
+    uniforms.uScrollProgress.value = scroll;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, PARTICLE_COUNT]} frustumCulled={false}>
-      <sphereGeometry args={[1, 6, 6]} />
-      <meshBasicMaterial toneMapped={false} />
-    </instancedMesh>
+    <points ref={pointsRef} geometry={geometry} frustumCulled={false}>
+      <shaderMaterial
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
   );
 }

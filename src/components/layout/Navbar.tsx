@@ -6,13 +6,25 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { SITE, NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useCosmosStore } from "@/lib/cosmosStore";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
+  const scrollDirection = useCosmosStore((s) => s.scrollDirection);
+  const scrollProgress = useCosmosStore((s) => s.scrollProgress);
+
+  // Hide on scroll down past hero, show on scroll up or near top
+  const navHidden = scrollDirection === "down" && scrollProgress > 0.05;
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-bg-dark/80 backdrop-blur-xl">
+    <nav
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-bg-dark/80 backdrop-blur-xl transition-transform duration-300",
+        navHidden ? "-translate-y-full" : "translate-y-0"
+      )}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}

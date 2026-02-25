@@ -39,7 +39,9 @@
   }
 }
 
-/* Base styles */
+/* ============================================
+   Base styles
+   ============================================ */
 body {
   background: var(--color-bg-dark);
   color: #ffffff;
@@ -54,7 +56,25 @@ h1, h2, h3, h4 {
   text-transform: uppercase;
 }
 
-/* Scrollbar */
+/* ============================================
+   Lenis smooth scroll
+   ============================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -75,12 +95,134 @@ h1, h2, h3, h4 {
   color: white;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+/* ============================================
+   Preloader
+   ============================================ */
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #0a0a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
 }
 
-/* Cosmos glassmorphic sections */
+.preloader-text {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #EF0107;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: preloaderTextIn 0.6s ease forwards 0.2s;
+}
+
+@keyframes preloaderTextIn {
+  to { opacity: 1; }
+}
+
+.preloader-bar {
+  width: 200px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: preloaderTextIn 0.4s ease forwards 0.5s;
+}
+
+.preloader-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #EF0107, #9C824A);
+  border-radius: 2px;
+  transition: width 0.15s ease-out;
+}
+
+.preloader-counter {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  animation: preloaderTextIn 0.4s ease forwards 0.5s;
+}
+
+/* ============================================
+   Custom cursor
+   ============================================ */
+.custom-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background: #EF0107;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(239, 1, 7, 0.6), 0 0 16px rgba(239, 1, 7, 0.2);
+  transition: box-shadow 0.2s ease;
+}
+
+.custom-cursor-dot.hovering {
+  box-shadow: 0 0 12px rgba(239, 1, 7, 0.9), 0 0 24px rgba(239, 1, 7, 0.4);
+}
+
+.custom-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid rgba(239, 1, 7, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transition: border-color 0.2s ease;
+}
+
+.custom-cursor-ring.hovering {
+  border-color: rgba(239, 1, 7, 0.7);
+}
+
+/* Hide default cursor on desktop */
+@media (hover: hover) {
+  .custom-cursor-active * {
+    cursor: none !important;
+  }
+}
+
+/* Restore cursor on touch devices */
+.touch-device * {
+  cursor: auto !important;
+}
+
+.touch-device .custom-cursor-dot,
+.touch-device .custom-cursor-ring {
+  display: none !important;
+}
+
+/* ============================================
+   Character reveal animation helpers
+   ============================================ */
+.char-reveal-wrapper {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.char-reveal {
+  display: inline-block;
+  will-change: transform;
+}
+
+/* ============================================
+   Cosmos glassmorphic sections
+   ============================================ */
 .cosmos-section {
   background: rgba(5, 5, 16, 0.75);
   backdrop-filter: blur(20px);
@@ -88,10 +230,31 @@ html {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Enhanced glass card with hover glow */
 .glass-card {
   background: rgba(17, 17, 39, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 0 30px rgba(239, 1, 7, 0.15), 0 0 60px rgba(239, 1, 7, 0.05);
+  border-color: rgba(239, 1, 7, 0.2);
+}
+
+/* ============================================
+   Reduced motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .preloader {
+    display: none !important;
+  }
+
+  .custom-cursor-dot,
+  .custom-cursor-ring {
+    display: none !important;
+  }
 }

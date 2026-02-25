@@ -31,8 +31,6 @@ function lerpWaypoints(progress: number) {
   const range = b.t - a.t;
   const local = range > 0 ? (progress - a.t) / range : 0;
   const t = Math.max(0, Math.min(1, local));
-
-  // Smooth step interpolation
   const smooth = t * t * (3 - 2 * t);
 
   return {
@@ -46,8 +44,9 @@ export default function ScrollCameraController() {
   const targetPos = useRef(new THREE.Vector3(0, 0, 20));
   const targetLook = useRef(new THREE.Vector3(0, 0, 0));
   const currentLook = useRef(new THREE.Vector3(0, 0, 0));
+  const velocity = useRef(new THREE.Vector3(0, 0, 0));
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const state = useCosmosStore.getState();
     const { pos, look } = lerpWaypoints(state.scrollProgress);
 
@@ -58,8 +57,31 @@ export default function ScrollCameraController() {
     targetPos.current.set(pos[0] + parallaxX, pos[1] + parallaxY, pos[2]);
     targetLook.current.set(look[0], look[1], look[2]);
 
-    // Smooth lerp camera
-    camera.position.lerp(targetPos.current, 0.04);
+    // Spring physics for natural deceleration with slight overshoot
+    const stiffness = 0.003;
+    const damping = 0.12;
+
+    const dx = targetPos.current.x - camera.position.x;
+    const dy = targetPos.current.y - camera.position.y;
+    const dz = targetPos.current.z - camera.position.z;
+
+    velocity.current.x += dx * stiffness;
+    velocity.current.y += dy * stiffness;
+    velocity.current.z += dz * stiffness;
+
+    velocity.current.x *= 1 - damping;
+    velocity.current.y *= 1 - damping;
+    velocity.current.z *= 1 - damping;
+
+    camera.position.x += velocity.current.x;
+    camera.position.y += velocity.current.y;
+    camera.position.z += velocity.current.z;
+
+    // Micro-shake for organic/cinematic feel
+    const t = clock.elapsedTime;
+    camera.position.x += Math.sin(t * 1.1) * 0.015 + Math.sin(t * 2.3) * 0.008;
+    camera.position.y += Math.cos(t * 0.9) * 0.012 + Math.cos(t * 1.7) * 0.006;
+
     currentLook.current.lerp(targetLook.current, 0.04);
     camera.lookAt(currentLook.current);
   });
