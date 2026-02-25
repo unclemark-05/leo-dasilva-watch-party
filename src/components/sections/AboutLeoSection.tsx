@@ -3,7 +3,7 @@ import { HOST } from "@/lib/constants";
 
 export default function AboutLeoSection() {
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 px-4 cosmos-section">
       <div className="mx-auto max-w-4xl flex flex-col md:flex-row items-center gap-8">
         {/* Avatar placeholder */}
         <div className="shrink-0">

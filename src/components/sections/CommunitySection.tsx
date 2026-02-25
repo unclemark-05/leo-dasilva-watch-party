@@ -41,7 +41,7 @@ const categoryLabels: Record<string, string> = {
 
 export default function CommunitySection() {
   return (
-    <section className="py-20 px-4 bg-bg-surface">
+    <section className="py-20 px-4 cosmos-section">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-end justify-between mb-8">
           <div>

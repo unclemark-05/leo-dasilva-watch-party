@@ -31,7 +31,7 @@ export default function NextMatchSection() {
   const countdown = useCountdown(NEXT_MATCH.date);
 
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 px-4 cosmos-section">
       <div className="mx-auto max-w-3xl text-center">
         <Badge variant="upcoming">{NEXT_MATCH.competition}</Badge>
         <h2 className="mt-4 text-3xl sm:text-4xl font-bold text-white font-heading">

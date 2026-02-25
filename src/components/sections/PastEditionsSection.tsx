@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/utils";
 
 export default function PastEditionsSection() {
   return (
-    <section className="py-20 px-4">
+    <section className="py-20 px-4 cosmos-section">
       <div className="mx-auto max-w-6xl">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white font-heading">

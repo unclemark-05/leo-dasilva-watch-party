@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans overflow-x-hidden`}>
         <Navbar />
         <main className="min-h-screen pt-16">{children}</main>
         <Footer />

@@ -1,3 +1,4 @@
+import CosmosBackground from "@/components/sections/CosmosBackground";
 import HeroSection from "@/components/sections/HeroSection";
 import AboutLeoSection from "@/components/sections/AboutLeoSection";
 import NextMatchSection from "@/components/sections/NextMatchSection";
@@ -9,13 +10,16 @@ import CTASection from "@/components/sections/CTASection";
 export default function Home() {
   return (
     <>
-      <HeroSection />
-      <AboutLeoSection />
-      <NextMatchSection />
-      <UpcomingEventsSection />
-      <PastEditionsSection />
-      <CommunitySection />
-      <CTASection />
+      <CosmosBackground />
+      <div id="scroll-container" className="relative z-10">
+        <HeroSection />
+        <AboutLeoSection />
+        <NextMatchSection />
+        <UpcomingEventsSection />
+        <PastEditionsSection />
+        <CommunitySection />
+        <CTASection />
+      </div>
     </>
   );
 }

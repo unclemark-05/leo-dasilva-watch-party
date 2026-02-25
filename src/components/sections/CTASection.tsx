@@ -3,7 +3,7 @@ import Button from "@/components/ui/Button";
 
 export default function CTASection() {
   return (
-    <section className="py-20 px-4 bg-gradient-to-r from-arsenal-red to-arsenal-red-dark">
+    <section className="py-20 px-4 bg-gradient-to-r from-arsenal-red/90 to-arsenal-red-dark/90 backdrop-blur-sm">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-4xl sm:text-5xl font-bold text-white font-heading">
           Join Leo&apos;s Arsenal Family
